@@ -4,6 +4,10 @@ _brought to u by the power of dutch research chems_
 
 the king of discord nukers is back :^)
 
+![best shid](/screenie.png 'lol hi')
+
+join https://discord.gg/technology :^)
+
 https://www.youtube.com/watch?v=_gLZHIpnKLY
 
 ## how 2:
