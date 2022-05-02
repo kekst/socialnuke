@@ -1,0 +1,85 @@
+@import './variables.scss';
+@import '../../node_modules/bootstrap/scss/bootstrap.scss';
+@import './bootswatch.scss';
+#root {
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.navbar {
+  padding-left: 20px;
+}
+
+.container-fluid {
+  height: calc(100vh - 56px);
+  overflow-y: auto;
+  padding: 20px;
+
+  .list-group {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+}
+
+.block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.69);
+  z-index: 696969;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .spiner-border {
+    width: 10rem;
+    height: 10rem;
+    border-width: 1rem;
+  }
+}
+
+.queue {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 300px;
+  z-index: 696969;
+
+  p {
+    margin: 0;
+    margin-bottom: 2px;
+
+    &:not(:first-child) {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.list-group {
+  overflow-x: hidden;
+}
+
+a.btn,
+button {
+  margin-right: 10px;
+}
+
+.target-icon {
+  max-width: 32px;
+  border-radius: 8px;
+  margin-right: 5px;
+}
+
+.breadcrumb {
+  border-radius: 0;
+}
+
+.jumbotron {
+  margin: 0 20px;
+}
+
+h3 {
+  font-size: 1.4rem;
+}
