@@ -12,6 +12,8 @@ get node: https://nodejs.org/en/download/current/
 
 get yarn: `npm install -g yarn`
 
+get diz: https://github.com/kekst/socialnuke/archive/refs/heads/main.zip
+
 get gud: `yarn && yarn start`
 
 ## whats bettr:
