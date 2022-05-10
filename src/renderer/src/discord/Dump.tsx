@@ -26,6 +26,7 @@ function Dump() {
     return {
       type: target?.type,
       target: target?.id,
+      channel_id: target?.channelId,
       has,
       contains: contains === '' || !contains ? undefined : contains,
       sort: oldest ? 'oldest' : 'newest',

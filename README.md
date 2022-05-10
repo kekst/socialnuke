@@ -1,6 +1,10 @@
 # socialnuke v2
 
-_brought to u by the power of dutch research chems_
+<p align="center">
+
+![wew](/hi.png 'lol hi')
+
+</p>
 
 the king of discord nukers is back :^)
 
@@ -26,4 +30,6 @@ fuck if i know
 
 we have the uhhh dark theme now
 
-also channel selection in guilds doesn't work kekw
+~~also channel selection in guilds doesn't work kekw~~ works now lmao
+
+### cope and seethe

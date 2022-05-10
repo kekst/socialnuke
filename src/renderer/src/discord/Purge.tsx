@@ -7,10 +7,12 @@ import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Spinner from 'react-bootstrap/Spinner';
 import Modal from 'react-bootstrap/Modal';
+import ReactDatePicker from 'react-datepicker';
 import { v4 } from 'uuid';
 import { useStore, Task } from '../../Store';
 import { waitForSearch, Filters } from '../../DiscordAPI';
 import TargetSelector, { Target } from './TargetSelector';
+import { dateSnowflake } from '../../common';
 
 function Purge() {
   const store = useStore();
@@ -24,18 +26,24 @@ function Purge() {
   const [oldest, setOldest] = useState(true);
   const [recheck, setRecheck] = useState(true);
   const [keepLast, setKeepLast] = useState(0);
+  const [after, setAfter] = useState<Date | null>(null);
+  const [before, setBefore] = useState<Date | null>(null);
+
   const filters = useMemo(() => {
     return {
       author_id: target?.accountId,
       type: target?.type,
       target: target?.id,
+      channel_id: target?.channelId,
+      min_id: after ? dateSnowflake(after) : undefined,
+      max_id: before ? dateSnowflake(before) : undefined,
       has,
       keep_last: keepLast,
       recheck,
       contains: contains === '' || !contains ? undefined : contains,
       sort: oldest ? 'oldest' : 'newest',
     } as Filters;
-  }, [target, has, contains, oldest, keepLast, recheck]);
+  }, [target, has, contains, oldest, keepLast, recheck, after, before]);
 
   const [preparing, setPreparing] = useState(false);
   const [numberOfMessages, setNumberOfMessages] = useState(-1);
@@ -148,6 +156,30 @@ function Purge() {
                   }
                 />
               </Form.Group> */}
+              <Form.Group controlId="after">
+                <Form.Label>After</Form.Label>
+                <ReactDatePicker
+                  selected={after}
+                  isClearable
+                  onChange={(date) => setAfter(date)}
+                  showTimeSelect
+                  timeFormat="p"
+                  timeIntervals={15}
+                  dateFormat="Pp"
+                />
+              </Form.Group>
+              <Form.Group controlId="after">
+                <Form.Label>Before</Form.Label>
+                <ReactDatePicker
+                  selected={before}
+                  isClearable
+                  onChange={(date) => setBefore(date)}
+                  showTimeSelect
+                  timeFormat="p"
+                  timeIntervals={15}
+                  dateFormat="Pp"
+                />
+              </Form.Group>
               <Form.Group controlId="contains">
                 <Form.Label>Contains</Form.Label>
                 <Form.Check
@@ -191,6 +223,13 @@ function Purge() {
                   id="video"
                   checked={has === 'video'}
                   onChange={() => setHas('video')}
+                />
+                <Form.Check
+                  type="radio"
+                  label="Sticker"
+                  id="sticker"
+                  checked={has === 'sticker'}
+                  onChange={() => setHas('sticker')}
                 />
               </Form.Group>
               <Button

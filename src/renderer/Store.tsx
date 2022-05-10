@@ -281,7 +281,8 @@ export class Store {
     const { data, token } = this.queue[0];
 
     let ignored: string[] = [];
-    let latestId: string | undefined = undefined;
+    let latestId: string | undefined =
+      data.sort === 'oldest' ? data.min_id : data.max_id;
     this.queue[0].current = 0;
 
     while (true) {
@@ -371,7 +372,7 @@ export class Store {
 
   async runQueue() {
     if (!this.queue[0]) return;
-    const task = this.queue[0];
+    let task = this.queue[0];
     if (task.state !== 'queued') return;
 
     task.state = 'preparing';
@@ -382,6 +383,8 @@ export class Store {
           case 'discord':
             await this.runQueueDiscordDump();
             break;
+          default:
+            this.queue.shift();
         }
         break;
       case 'purge':
@@ -389,14 +392,28 @@ export class Store {
           case 'discord':
             await this.runQueueDiscordPurge();
             break;
+          default:
+            this.queue.shift();
         }
         break;
+      default:
+        this.queue.shift();
     }
 
-    // @ts-ignore
-    if (task?.state !== 'queued') {
-      this.queue.shift();
+    while (true) {
+      task = this.queue[0];
+      if (!task) {
+        return;
+      }
+
+      // @ts-ignore
+      if (task?.state !== 'queued') {
+        this.queue.shift();
+      } else {
+        break;
+      }
     }
+
     this.runQueue();
   }
 

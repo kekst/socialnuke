@@ -79,14 +79,21 @@ function TargetSelector({
       setChannels(channels);
       setLoading(false);
     },
-    [setLoading, setChannels, selected, setSelectedChannel]
+    [setLoading, setChannels, setSelectedChannel]
   );
+
+  const changeType = (type: 'channel' | 'guild') => {
+    setSelectedTarget(undefined);
+    setSelectedChannel(undefined);
+    setType(type);
+  };
 
   useEffect(() => {
     if (!selected || !type) {
       setTargets([]);
       return;
     }
+
     const acc = store.discordAccounts.find((acc) => acc.id === selected);
     if (acc) {
       getTargets(acc.token, type);
@@ -147,7 +154,7 @@ function TargetSelector({
         <ListGroup>
           <ListGroup.Item
             action
-            onClick={() => setType('channel')}
+            onClick={() => changeType('channel')}
             active={type === 'channel'}
             disabled={loading}
           >
@@ -155,7 +162,7 @@ function TargetSelector({
           </ListGroup.Item>
           <ListGroup.Item
             action
-            onClick={() => setType('guild')}
+            onClick={() => changeType('guild')}
             active={type === 'guild'}
             disabled={loading}
           >
@@ -206,7 +213,6 @@ function TargetSelector({
       </Col>
       {type === 'guild' && (
         <Col xs={3}>
-          <span>(this doesnt work lmao, will delete from all channels)</span>
           <h3>Channel:</h3>
           <Form.Control
             type="text"
@@ -215,6 +221,20 @@ function TargetSelector({
             placeholder="Search"
           />
           <ListGroup>
+            <ListGroup.Item
+              action
+              onClick={() => {
+                setSelectedChannel(undefined);
+                onTargetSelected({
+                  ...targets.find((target) => target.id === selectedTarget)!,
+                  channelId: undefined,
+                });
+              }}
+              active={!selectedChannel}
+              disabled={loading}
+            >
+              <b>ALL CHANNELS</b>
+            </ListGroup.Item>
             {channels
               .filter((channel) => {
                 const trim = searchChannel.trim().toLowerCase();
@@ -232,7 +252,7 @@ function TargetSelector({
                   action
                   key={channel.id}
                   onClick={() => {
-                    setSelectedTarget(channel.id);
+                    setSelectedChannel(channel.id);
                     onTargetSelected({
                       ...targets.find(
                         (target) => target.id === selectedTarget
