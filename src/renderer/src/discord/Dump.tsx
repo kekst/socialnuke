@@ -9,8 +9,8 @@ import Spinner from 'react-bootstrap/Spinner';
 import Modal from 'react-bootstrap/Modal';
 import { v4 } from 'uuid';
 import { useStore, Task } from '../../Store';
-import { waitForSearch, Filters } from '../../DiscordAPI';
-import TargetSelector, { Target } from './TargetSelector';
+import { waitForSearch, Filters, Target } from '../../DiscordAPI';
+import TargetSelector from './TargetSelector';
 
 function Dump() {
   const store = useStore();
@@ -62,13 +62,13 @@ function Dump() {
     );
     if (!acc || !target) return;
 
+    const typeName = target.type === 'channel' ? 'DMs' : 'Guild';
     const task: Task = {
       id: v4(),
       type: 'dump',
       account: acc.name,
       token: acc.token,
-      description:
-        (target.type === 'channel' ? 'DMs' : 'Guild') + ': ' + target.name,
+      description: `${typeName}: ${target.name}`,
       platform: 'discord',
       state: 'queued',
       data: filters,

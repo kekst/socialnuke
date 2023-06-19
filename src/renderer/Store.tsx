@@ -1,10 +1,11 @@
 import { makeAutoObservable } from 'mobx';
 import React, { createContext, useContext } from 'react';
 import { BrowserWindow, getCurrentWindow } from '@electron/remote';
+import autobind from 'autobind-decorator';
+import { toast } from 'react-toastify';
 import { v4 } from 'uuid';
 import * as DiscordAPI from './DiscordAPI';
 import * as RedditAPI from './RedditAPI';
-import autobind from 'autobind-decorator';
 import { sleep } from './common';
 
 type Platform = 'discord' | 'twitter' | 'reddit';
@@ -33,7 +34,9 @@ export interface Task {
 
 export class Store {
   accounts: Account[] = [];
+
   queue: Task[] = [];
+
   discordTimeout = 400;
 
   constructor() {
@@ -46,6 +49,7 @@ export class Store {
     this.openLogin('discord');
   }
 
+  @autobind
   openLogin(platform: Platform) {
     const loginWindow = new BrowserWindow({
       width: 1000,
@@ -60,12 +64,14 @@ export class Store {
       },
     });
     loginWindow.removeMenu();
+    const userAgent =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
+    loginWindow.webContents.setUserAgent(userAgent);
 
     let complete = false;
     loginWindow.webContents.session.webRequest.onBeforeSendHeaders(
       (details, callback) => {
-        details.requestHeaders['User-Agent'] =
-          'Mozilla/5.0 (X11; Linux x86_64; rv:99.0) Gecko/20100101 Firefox/99.0';
+        details.requestHeaders['User-Agent'] = userAgent;
         callback({ cancel: false, requestHeaders: details.requestHeaders });
       }
     );
@@ -84,26 +90,22 @@ export class Store {
           return;
         }
 
-        if (
-          'Authorization' in details.requestHeaders &&
-          typeof details.requestHeaders['Authorization'] === 'string' &&
-          details.requestHeaders['Authorization'] !== 'undefined'
-        ) {
+        const authorization = details.requestHeaders.Authorization;
+
+        if (authorization) {
           complete = true;
           switch (platform) {
             case 'discord':
-              this.addDiscordAccount(details.requestHeaders['Authorization']);
+              this.addDiscordAccount(authorization);
               break;
             case 'twitter':
-              this.addTwitterAccount(
-                details.requestHeaders['Authorization'].split(' ')[1]
-              );
+              this.addTwitterAccount(authorization.split(' ')[1]);
               break;
             case 'reddit':
-              this.addRedditAccount(
-                details.requestHeaders['Authorization'].split(' ')[1]
-              );
+              this.addRedditAccount(authorization.split(' ')[1]);
               break;
+            default:
+            // Unknown
           }
           loginWindow.close();
         }
@@ -122,30 +124,25 @@ export class Store {
       case 'reddit':
         loginWindow.loadURL('https://new.reddit.com/login/');
         break;
+      default:
+      // Unknown
     }
   }
 
   @autobind
   async refreshDiscordAccounts() {
-    for (let acc of this.accounts) {
+    for (const acc of this.accounts) {
       while (true) {
         try {
           const account = await DiscordAPI.getUser(acc.token);
           if (!account) {
-            this.removeAccount('discord', acc.id);
             break;
           }
 
-          acc.name = account.username + '#' + account.discriminator;
+          acc.name = DiscordAPI.getUserName(account);
           acc.refreshed = new Date().getTime();
-          acc.iconUrl = account.avatar
-            ? 'https://cdn.discordapp.com/avatars/' +
-              account.id +
-              '/' +
-              account.avatar +
-              '.png'
-            : undefined;
-        } catch (e) {
+          acc.iconUrl = DiscordAPI.getUserAvatar(account);
+        } catch (e: any) {
           if (e.message === 'No') {
             this.removeAccount('discord', acc.id);
             break;
@@ -167,38 +164,26 @@ export class Store {
   async addDiscordAccount(token: string) {
     const account = await DiscordAPI.getUser(token);
     if (!account) {
-      alert('Invalid token');
+      toast.error('Invalid token');
       return;
     }
 
     const findAcc = this.discordAccounts.find((acc) => acc.id === account.id);
     if (findAcc) {
-      findAcc.name = account.username + '#' + account.discriminator;
+      findAcc.name = DiscordAPI.getUserName(account);
       findAcc.token = token;
       findAcc.refreshed = new Date().getTime();
-      findAcc.iconUrl = account.avatar
-        ? 'https://cdn.discordapp.com/avatars/' +
-          account.id +
-          '/' +
-          account.avatar +
-          '.png'
-        : undefined;
+      findAcc.iconUrl = DiscordAPI.getUserAvatar(account);
 
       this.accounts = [...this.accounts];
     } else {
       const acc: Account = {
         platform: 'discord',
         id: account.id,
-        name: account.username + '#' + account.discriminator,
-        token: token,
+        name: DiscordAPI.getUserName(account),
+        token,
         refreshed: new Date().getTime(),
-        iconUrl: account.avatar
-          ? 'https://cdn.discordapp.com/avatars/' +
-            account.id +
-            '/' +
-            account.avatar +
-            '.png'
-          : undefined,
+        iconUrl: DiscordAPI.getUserAvatar(account),
       };
 
       this.accounts = [...this.accounts, acc];
@@ -207,12 +192,14 @@ export class Store {
     this.onAccountsUpdated();
   }
 
-  async addTwitterAccount(token: string) {}
+  async addTwitterAccount(token: string) {
+    //
+  }
 
   async addRedditAccount(token: string) {
     const account = await RedditAPI.getUser(token);
     if (!account) {
-      alert('Invalid token');
+      toast.error('Invalid token');
       return;
     }
 
@@ -229,7 +216,7 @@ export class Store {
         platform: 'reddit',
         id: account.id,
         name: account.name,
-        token: token,
+        token,
         refreshed: new Date().getTime(),
         iconUrl: account.icon_img,
       };
@@ -259,7 +246,7 @@ export class Store {
 
   removeAccount(platform: Platform, id: string) {
     this.accounts = this.accounts.filter(
-      (acc) => !(acc.platform === platform, acc.id === id)
+      (acc) => acc.platform !== platform || acc.id !== id
     );
 
     this.onAccountsUpdated();
@@ -276,22 +263,22 @@ export class Store {
     ) => Promise<void>
   ) {
     if (!this.queue[0]) return;
-    if (this.queue[0].state !== 'preparing') return;
+    const first = this.queue[0];
+    if (first.state !== 'preparing') return;
+    const { data, token } = first;
 
-    const { data, token } = this.queue[0];
-
-    let ignored: string[] = [];
+    const ignored: string[] = [];
     let latestId: string | undefined =
       data.sort === 'oldest' ? data.min_id : data.max_id;
     this.queue[0].current = 0;
 
     while (true) {
-      // @ts-ignore
-      if (this.queue[0].state === 'cancelled') return;
+      const first = this.queue[0];
+      if (first.state === 'cancelled') return;
 
       let res: DiscordAPI.Results;
       try {
-        let filters = {
+        const filters = {
           ...data,
         };
 
@@ -312,12 +299,7 @@ export class Store {
         this.queue[0].state = 'progress';
       }
 
-      if (
-        !this.queue[0].total ||
-        !res.total_results ||
-        res.total_results == 0 ||
-        !resMessages
-      ) {
+      if (!this.queue[0].total || !res.total_results || !resMessages) {
         this.queue.shift();
         return;
       }
@@ -328,25 +310,26 @@ export class Store {
         return x.reduce((acc: any, val: any) => (val.hit ? val : acc));
       });
 
-      for (var i = 0; i < messages.length; i++) {
-        if (!ignored.includes(messages[i].id)) {
+      for (const message of messages) {
+        if (!ignored.includes(message.id)) {
           while (true) {
-            // @ts-ignore
-            if (this.queue[0].state === 'cancelled') return;
+            const first = this.queue[0];
+            if (first.state === 'cancelled') return;
             try {
-              latestId = messages[i].id;
-              await callback(token, messages[i]);
+              latestId = message.id;
+              await callback(token, message);
               await sleep(this.discordTimeout);
               break;
-            } catch (e) {
+            } catch (e: any) {
               try {
                 if (e.message === 'No') {
-                  console.log('ignore');
-                  latestId = messages[i].id;
-                  ignored.push(messages[i].id);
+                  latestId = message.id;
+                  ignored.push(message.id);
                   break;
                 }
-              } catch (e) {}
+              } catch (e: any) {
+                //
+              }
 
               const t = parseInt(e.message);
               if (t > 0) {
@@ -356,13 +339,15 @@ export class Store {
               }
             }
           }
-          this.queue[0].current = this.queue[0].current + 1;
+          this.queue[0].current += 1;
         }
       }
     }
   }
 
-  private async runQueueDiscordDump() {}
+  private async runQueueDiscordDump() {
+    //
+  }
 
   private async runQueueDiscordPurge() {
     await this.runQueueDiscord(async (token, message) => {
@@ -372,7 +357,7 @@ export class Store {
 
   async runQueue() {
     if (!this.queue[0]) return;
-    let task = this.queue[0];
+    const task = this.queue[0];
     if (task.state !== 'queued') return;
 
     task.state = 'preparing';
@@ -401,12 +386,11 @@ export class Store {
     }
 
     while (true) {
-      task = this.queue[0];
+      const task = this.queue[0];
       if (!task) {
         return;
       }
 
-      // @ts-ignore
       if (task?.state !== 'queued') {
         this.queue.shift();
       } else {
@@ -419,7 +403,7 @@ export class Store {
 
   @autobind
   cancelTask(id: string) {
-    for (let task of this.queue) {
+    for (const task of this.queue) {
       if (task.id === id) {
         if (task.state === 'queued') {
           this.queue = this.queue.filter((t) => task.id !== t.id);

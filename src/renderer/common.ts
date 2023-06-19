@@ -7,5 +7,5 @@ export function snowflakeDate(snowflake: string) {
 }
 
 export function dateSnowflake(date: Date) {
-  return (date.getTime() - 1420070400000) * 4194304;
+  return String((date.getTime() - 1420070400000) * 4194304);
 }

@@ -13,6 +13,12 @@ module.exports = {
     radix: 'off',
     'no-restricted-syntax': 'off',
     'no-constant-condition': 'off',
+    'react/jsx-props-no-spreading': 'off',
+    'no-await-in-loop': 'off',
+    'no-continue': 'off',
+    'class-methods-use-this': 'off',
+    'jsx-a11y/label-has-associated-control': 'off',
+    'react/button-has-type': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,

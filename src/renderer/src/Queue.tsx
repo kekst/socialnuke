@@ -26,7 +26,7 @@ function Queue() {
         {task.total && task.current && (
           <ProgressBar now={(task.current / task.total) * 100} />
         )}
-        {task.state + ' '}
+        {task.state}{' '}
         {task.total && task.current && (
           <>
             {task.current} / {task.total}

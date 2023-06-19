@@ -1,10 +1,12 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { observer } from 'mobx-react-lite';
 import Button from 'react-bootstrap/Button';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Table from 'react-bootstrap/Table';
 import Container from 'react-bootstrap/Container';
+import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
+import { BsFillTrashFill } from 'react-icons/bs';
 import { useStore } from '../../Store';
 
 function Accounts() {
@@ -12,20 +14,30 @@ function Accounts() {
 
   return (
     <>
-      <Container fluid>
+      <Container>
+        <Row>
+          <Col xs={12}>
+            <h2>Accounts:</h2>
+          </Col>
+        </Row>
         <Row style={{ paddingBottom: 20 }}>
           <Col xs={12}>
-            <Button variant="primary" onClick={store.openDiscordLogin}>
-              Add Discord account
-            </Button>
-            <Button variant="primary" onClick={store.refreshAccounts}>
-              Refresh accounts
-            </Button>
+            <ButtonToolbar>
+              <Button
+                variant="primary"
+                onClick={() => store.openDiscordLogin()}
+              >
+                Add Discord account
+              </Button>
+              <Button variant="primary" onClick={() => store.refreshAccounts()}>
+                Refresh accounts
+              </Button>
+            </ButtonToolbar>
           </Col>
         </Row>
         <Row>
           <Col xs={12}>
-            <Table striped bordered hover>
+            <Table striped hover>
               <thead>
                 <tr>
                   <th>Platform</th>
@@ -40,7 +52,11 @@ function Accounts() {
                     <td>{acc.platform}</td>
                     <td>
                       {acc.iconUrl && (
-                        <img src={acc.iconUrl} className="target-icon" />
+                        <img
+                          src={acc.iconUrl}
+                          className="target-icon"
+                          alt={acc.name}
+                        />
                       )}
                       {acc.name}
                     </td>
@@ -48,7 +64,9 @@ function Accounts() {
                       <pre>{acc.token}</pre>
                     </td>
                     <td>
-                      <Button variant="primary">Remove from socialnuke</Button>
+                      <Button variant="primary">
+                        <BsFillTrashFill />
+                      </Button>
                     </td>
                   </tr>
                 ))}

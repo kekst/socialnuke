@@ -4,7 +4,7 @@ const FAKE_CLIENT =
 
 export function getHeaders(token: string) {
   return {
-    authorization: 'Bearer ' + token,
+    authorization: `Bearer ${token}`,
   };
 }
 
@@ -12,7 +12,7 @@ export async function removeThing(token: string, id: string) {
   const form = new URLSearchParams();
   form.set('id', id);
 
-  const res = await fetch(ENDPOINT + 'del?' + FAKE_CLIENT, {
+  const res = await fetch(`${ENDPOINT}del?${FAKE_CLIENT}`, {
     method: 'POST',
     body: form,
     headers: getHeaders(token),
@@ -35,7 +35,7 @@ export async function editThing(token: string, id: string, text: string) {
   form.set('text', text);
 
   const res = await fetch(
-    ENDPOINT + 'editusertext?emotes_as_images=true&rtj=only&' + FAKE_CLIENT,
+    `${ENDPOINT}editusertext?emotes_as_images=true&rtj=only&${FAKE_CLIENT}`,
     {
       method: 'POST',
       body: form,
@@ -55,7 +55,7 @@ export async function editThing(token: string, id: string, text: string) {
 export async function getUser(
   token: string
 ): Promise<{ id: string; name: string; icon_img?: string }> {
-  const res = await fetch(ENDPOINT + 'v1/me?raw_json=1&gilding_detail=1', {
+  const res = await fetch(`${ENDPOINT}v1/me?raw_json=1&gilding_detail=1`, {
     method: 'GET',
     headers: getHeaders(token),
   });
@@ -68,5 +68,6 @@ export async function getUser(
     throw new Error('Rate limited?');
   }
 
-  return await res.json();
+  const json = await res.json();
+  return json;
 }
