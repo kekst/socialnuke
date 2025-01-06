@@ -25,7 +25,7 @@ function Accounts() {
             <ButtonToolbar>
               <Button
                 variant="primary"
-                onClick={() => store.openDiscordLogin()}
+                onClick={() => store.openLogin('discord')}
               >
                 Add Discord account
               </Button>

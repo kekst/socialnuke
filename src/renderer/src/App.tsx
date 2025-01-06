@@ -7,9 +7,10 @@ import { BsPeopleFill, BsListCheck, BsDiscord } from 'react-icons/bs';
 import 'react-toastify/dist/ReactToastify.css';
 
 import HomeQueue from './home/Queue';
-import DiscordPurge from './discord/Purge';
+import Purge from './platform';
 import HomeAccounts from './home/Accounts';
 import Queue from './Queue';
+import { platforms } from './platforms';
 
 function App() {
   return (
@@ -33,19 +34,26 @@ function App() {
             <Nav.Item className="nav-section">
               <span>Purge</span>
             </Nav.Item>
-            <LinkContainer to="/discord/purge">
-              <Nav.Link>
-                <BsDiscord /> Discord
-              </Nav.Link>
-            </LinkContainer>
+            {Object.values(platforms).map((platform) => (
+              <LinkContainer to={`${platform.key}`} key={platform.key}>
+                <Nav.Link>
+                  {platform.icon} {platform.name}
+                </Nav.Link>
+              </LinkContainer>
+            ))}
           </Nav>
         </div>
         <div>
           <Routes>
-            <Route path="/discord/purge" element={<DiscordPurge />} />
+            {Object.values(platforms).map((platform) => (
+              <Route
+                key={platform.key}
+                path={`${platform.key}`}
+                element={<Purge platform={platform} />}
+              />
+            ))}
             <Route path="/accounts" element={<HomeAccounts />} />
             <Route path="/queue" element={<HomeQueue />} />
-            <Route index element={<DiscordPurge />} />
           </Routes>
         </div>
       </div>

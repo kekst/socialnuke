@@ -20,30 +20,36 @@ function Queue() {
       <ListGroup.Item>
         <p>
           <b>{task.platform}:&nbsp;</b>
-          {task.account}
+          {task.userName}
         </p>
         <p>{task.description}</p>
-        {task.total && task.current && (
+        {!!(task.total && task.current) && (
           <ProgressBar now={(task.current / task.total) * 100} />
         )}
-        {task.state}{' '}
-        {task.total && task.current && (
-          <>
-            {task.current} / {task.total}
-          </>
-        )}
-        <Button variant="primary" onClick={() => store.cancelTask(task.id)}>
-          Cancel
-        </Button>
+        <div className="queue-item-progress">
+          <div>
+            {task.state !== 'progress' && task.state}
+            {task.state === 'progress' && !!(task.total && task.current) && (
+              <>
+                {task.current} / {task.total}
+              </>
+            )}
+          </div>
+          <Button variant="primary" onClick={() => store.cancelTask(task.id)}>
+            Cancel
+          </Button>
+        </div>
       </ListGroup.Item>
       {store.queue.length > 1 && (
         <ListGroup.Item>
-          <p>
-            <strong>{store.queue.length - 1} more items</strong>
-          </p>
-          <p>
-            <Link to="/queue">View queue</Link>
-          </p>
+          <div className="queue-item-progress">
+            <div>
+              <strong>{store.queue.length - 1} more items</strong>
+            </div>
+            <div>
+              <Link to="/queue">View queue</Link>
+            </div>
+          </div>
         </ListGroup.Item>
       )}
     </ListGroup>

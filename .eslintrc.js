@@ -19,6 +19,12 @@ module.exports = {
     'class-methods-use-this': 'off',
     'jsx-a11y/label-has-associated-control': 'off',
     'react/button-has-type': 'off',
+    '@typescript-eslint/lines-between-class-members': 'off',
+    'import/prefer-default-export': 'off',
+    'max-classes-per-file': 'off',
+    'promise/always-return': 'off',
+    'react/require-default-props': 'off',
+    'spaced-comment': 'off',
   },
   parserOptions: {
     ecmaVersion: 2020,
