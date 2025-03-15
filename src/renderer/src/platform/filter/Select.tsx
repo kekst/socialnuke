@@ -1,9 +1,7 @@
-import React from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
-import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
+import { Controller, useFormContext } from "react-hook-form";
 
-import { FilterProps } from './types';
+import { FilterProps } from "./types";
+import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 export default function Select({ filter: { key, options } }: FilterProps) {
   const { control } = useFormContext();
@@ -13,22 +11,23 @@ export default function Select({ filter: { key, options } }: FilterProps) {
       control={control}
       name={key}
       render={({ field }) => (
-        <ButtonGroup>
+        <ToggleButtonGroup
+          exclusive
+          value={field.value}
+          onChange={(_, value) => field.onChange(value)}
+        >
           {options?.map((v) => (
-            <Button
-              active={field.value === v.value}
-              key={v.value || 'undefined'}
-              variant="secondary"
-              className="ibtn"
-              size="sm"
+            <ToggleButton
+              key={v.value || "undefined"}
+              value={v.value || "undefined"}
               onClick={() => {
                 field.onChange(v.value);
               }}
             >
               {v.icon} {v.label}
-            </Button>
+            </ToggleButton>
           ))}
-        </ButtonGroup>
+        </ToggleButtonGroup>
       )}
     />
   );

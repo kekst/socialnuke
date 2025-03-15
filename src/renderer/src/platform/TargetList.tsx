@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
-import ListGroup from 'react-bootstrap/ListGroup';
-import Form from 'react-bootstrap/Form';
-import { PlatformTarget } from '../platforms/types';
+import { useState } from "react";
+import List from "@mui/material/List";
+import TextField from "@mui/material/TextField";
+import { PlatformTarget } from "../platforms/types";
+import ListItemButton from "@mui/material/ListItemButton";
+import { InputAdornment, ListItemIcon, ListItemText } from "@mui/material";
+import { BsSearch } from "react-icons/bs";
 
 export interface Channel {
   id: string;
@@ -13,24 +16,34 @@ export interface Channel {
 export default function TargetList({
   targets,
   selectedTarget,
-  onTargetSelected,
+  onTargetSelected
 }: {
   targets: PlatformTarget[];
   selectedTarget?: PlatformTarget;
   onTargetSelected: (target: PlatformTarget) => void;
 }) {
   //todo on loading
-  const [search, setSearch] = useState<string>('');
+  const [search, setSearch] = useState<string>("");
 
   return (
     <>
-      <Form.Control
-        type="text"
+      <TextField
+        type="search"
+        variant="standard"
+        fullWidth
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search"
+        slotProps={{
+          input: {
+            startAdornment: (
+              <InputAdornment position="start">
+                <BsSearch />
+              </InputAdornment>
+            )
+          }
+        }}
       />
-      <ListGroup>
+      <List style={{ maxHeight: "400px", overflow: "auto" }}>
         {targets
           .filter((target) => {
             const trim = search.trim().toLowerCase();
@@ -38,37 +51,29 @@ export default function TargetList({
               return true;
             }
 
-            return (
-              target.id.includes(trim) ||
-              target.name.toLowerCase().includes(trim)
-            );
+            return target.id.includes(trim) || target.name.toLowerCase().includes(trim);
           })
           .map((target) => (
-            <ListGroup.Item
-              action
+            <ListItemButton
               className="item-target"
               key={target.id}
               onClick={() => {
                 onTargetSelected(target);
               }}
-              active={target.id === selectedTarget?.id}
+              selected={target.id === selectedTarget?.id}
               disabled={target.disabled}
             >
-              {target.icon}
-              {target.iconUrl && (
-                <img
-                  src={target.iconUrl}
-                  className="target-icon"
-                  alt={target.name}
-                />
-              )}
-              <span className="item-name">{target.name}</span>
-              {/* <span className="item-flags">
-                {target.canDeleteAll ? <BsShieldShaded /> : ''}
-              </span> */}
-            </ListGroup.Item>
+              <ListItemIcon>
+                {target.iconUrl ? (
+                  <img src={target.iconUrl} className="target-icon" alt={target.name} />
+                ) : (
+                  target.icon
+                )}
+              </ListItemIcon>
+              <ListItemText>{target.name}</ListItemText>
+            </ListItemButton>
           ))}
-      </ListGroup>
+      </List>
     </>
   );
 }

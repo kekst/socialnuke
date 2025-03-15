@@ -1,11 +1,10 @@
-import { makeAutoObservable } from 'mobx';
-import React, { createContext, useContext } from 'react';
-import autobind from 'autobind-decorator';
-import { toast } from 'react-toastify';
-import { sleep } from './common';
-import { platforms } from './src/platforms';
-import { PlatformItem, QueryGenerator } from './src/platforms/types';
-import { waitFor } from './src/platforms/utils';
+import { makeAutoObservable } from "mobx";
+import React, { createContext, useContext } from "react";
+import { sleep } from "./common";
+import { platforms } from "./platforms";
+import { PlatformItem, QueryGenerator } from "./platforms/types";
+import { waitFor } from "./platforms/utils";
+import { v4 } from "uuid";
 
 interface Account {
   id: string;
@@ -18,7 +17,7 @@ interface Account {
 
 export interface Task {
   id: string;
-  type: 'purge' | 'dump';
+  type: "purge" | "dump";
   generator: QueryGenerator;
   platform: string;
   userName: string;
@@ -26,32 +25,50 @@ export interface Task {
   description: string;
   current?: number;
   total?: number;
-  state: 'progress' | 'preparing' | 'queued' | 'cancelled';
+  state: "progress" | "preparing" | "queued" | "cancelled";
+}
+
+export type Severity = "error" | "info" | "warning";
+
+export interface Toast {
+  id: string;
+  severity: Severity;
+  label: string;
 }
 
 export class Store {
   accounts: Account[] = [];
-
+  toasts: Toast[] = [];
   queue: Task[] = [];
 
   constructor() {
     makeAutoObservable(this);
-    this.accounts = JSON.parse(localStorage.getItem('accounts') || '[]');
+    this.accounts = JSON.parse(localStorage.getItem("accounts") || "[]");
+    this.openLogin = this.openLogin.bind(this);
+    this.refreshAccounts = this.refreshAccounts.bind(this);
+    this.cancelTask = this.cancelTask.bind(this);
   }
 
-  @autobind
+  toast(severity: Severity, label: string) {
+    this.toasts.push({ id: v4(), severity, label });
+  }
+
+  dismissToast(id: string) {
+    this.toasts = this.toasts.filter((toast) => toast.id !== id);
+  }
+
   async openLogin(platformKey: string) {
     try {
       const platform = platforms[platformKey];
       const token = await platform.tokenFlow();
       if (!token) {
-        toast.error('Invalid token');
+        this.toast("error", "Invalid token");
         return;
       }
 
       const { user } = await platform.withToken(token);
       if (!user) {
-        toast.error('Invalid token');
+        this.toast("error", "Invalid token");
         return;
       }
 
@@ -71,17 +88,16 @@ export class Store {
             ...user,
             platform: platform.key,
             refreshed: new Date().getTime(),
-            token,
-          },
+            token
+          }
         ];
       }
       this.onAccountsUpdated();
     } catch {
-      toast.error('Unknown error');
+      this.toast("error", "Unknown error");
     }
   }
 
-  @autobind
   async refreshAccounts() {
     for (const acc of this.accounts) {
       while (true) {
@@ -109,41 +125,37 @@ export class Store {
   }
 
   removeAccount(platform: string, id: string) {
-    this.accounts = this.accounts.filter(
-      (acc) => acc.platform !== platform || acc.id !== id
-    );
+    this.accounts = this.accounts.filter((acc) => acc.platform !== platform || acc.id !== id);
 
     this.onAccountsUpdated();
   }
 
   onAccountsUpdated() {
-    localStorage.setItem('accounts', JSON.stringify(this.accounts));
+    localStorage.setItem("accounts", JSON.stringify(this.accounts));
   }
 
-  private async runQueuePlatform(
-    callback: (item: PlatformItem) => Promise<void>
-  ) {
+  private async runQueuePlatform(callback: (item: PlatformItem) => Promise<void>) {
     if (!this.queue[0]) return;
     const first = this.queue[0];
-    if (first.state !== 'preparing') return;
+    if (first.state !== "preparing") return;
     const { generator } = first;
     const platform = platforms[first.platform];
 
     this.queue[0].current = 0;
-    this.queue[0].state = 'progress';
+    this.queue[0].state = "progress";
 
     for await (const item of generator) {
       const first = this.queue[0];
-      if (first.state === 'cancelled') return;
+      if (first.state === "cancelled") return;
 
-      if (item.type === 'ok') {
+      if (item.type === "ok") {
         try {
           await callback(item.result);
         } catch {
           //
         }
-      } else if (item.type === 'action') {
-        if (item.action.type === 'wait') {
+      } else if (item.type === "action") {
+        if (item.action.type === "wait") {
           await sleep(item.action.time);
           continue;
         }
@@ -166,12 +178,12 @@ export class Store {
   async runQueue() {
     if (!this.queue[0]) return;
     const task = this.queue[0];
-    if (task.state !== 'queued') return;
+    if (task.state !== "queued") return;
 
-    task.state = 'preparing';
+    task.state = "preparing";
 
     switch (task.type) {
-      case 'purge':
+      case "purge":
         await this.runQueuePurge();
         break;
       default:
@@ -184,7 +196,7 @@ export class Store {
         return;
       }
 
-      if (task?.state !== 'queued') {
+      if (task?.state !== "queued") {
         this.queue.shift();
       } else {
         break;
@@ -194,16 +206,15 @@ export class Store {
     this.runQueue();
   }
 
-  @autobind
   cancelTask(id: string) {
     for (const task of this.queue) {
       if (task.id === id) {
-        if (task.state === 'queued') {
+        if (task.state === "queued") {
           this.queue = this.queue.filter((t) => task.id !== t.id);
           return;
         }
 
-        task.state = 'cancelled';
+        task.state = "cancelled";
       }
     }
   }
@@ -214,20 +225,18 @@ function useClassStore(init: any) {
   return store;
 }
 
-const sharedInstance = new Store();
+export const store = new Store();
 
 export const StoreContext = createContext<Store | undefined>(undefined);
 export const StoreProvider = ({ children }: { children: any }) => {
-  const store = useClassStore(() => sharedInstance);
-  return (
-    <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
-  );
+  const value = useClassStore(() => store);
+  return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 };
 
 export const useStore = (): Store => {
   const store = useContext(StoreContext);
   if (!store) {
-    throw new Error('useStore must be used within a StoreProvider.');
+    throw new Error("useStore must be used within a StoreProvider.");
   }
   return store;
 };

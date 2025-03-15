@@ -1,0 +1,65 @@
+*::-webkit-scrollbar {
+  width: 12px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #00000066;
+  border-radius: 10px;
+}
+
+#root {
+  max-height: 100vh;
+  overflow: hidden;
+}
+
+.queue {
+  padding: 0 !important;
+
+  .item {
+    display: block !important;
+    padding: 10px;
+
+    .progress {
+      margin-bottom: 10px;
+    }
+
+    .queue-item-progress {
+      margin-top: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  }
+
+  p {
+    margin: 0;
+    margin-bottom: 2px;
+
+    &:not(:first-child) {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.target {
+  display: flex;
+  align-items: center;
+
+  .target-icon {
+    margin-right: 1rem;
+  }
+}
+
+.target-icon {
+  width: 2em;
+  border-radius: 5px;
+  height: auto;
+}
+
+.accounts {
+  margin-bottom: 1rem;
+}

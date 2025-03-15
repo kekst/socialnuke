@@ -1,10 +1,11 @@
-import React from 'react';
-import { Controller, useFormContext } from 'react-hook-form';
-import Button from 'react-bootstrap/Button';
-import ButtonGroup from 'react-bootstrap/ButtonGroup';
-import ReactDatePicker from 'react-datepicker';
+import { Controller, useFormContext } from "react-hook-form";
+import Button from "@mui/material/Button";
+import ButtonGroup from "@mui/material/ButtonGroup";
+import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
+import Grid from "@mui/material/Grid2";
+import dayjs from "dayjs";
 
-import { FilterProps } from './types';
+import { FilterProps } from "./types";
 
 export default function DateRange({ filter: { key } }: FilterProps) {
   const { control, setValue } = useFormContext();
@@ -13,8 +14,6 @@ export default function DateRange({ filter: { key } }: FilterProps) {
     <>
       <ButtonGroup>
         <Button
-          variant="secondary"
-          size="sm"
           onClick={() => {
             const after = new Date();
             after.setHours(0, 0, 0);
@@ -27,8 +26,6 @@ export default function DateRange({ filter: { key } }: FilterProps) {
           Today
         </Button>
         <Button
-          variant="secondary"
-          size="sm"
           onClick={() => {
             const after = new Date();
             after.setHours(0, 0, 0);
@@ -43,8 +40,6 @@ export default function DateRange({ filter: { key } }: FilterProps) {
           Week
         </Button>
         <Button
-          variant="secondary"
-          size="sm"
           onClick={() => {
             const after = new Date();
             after.setHours(0, 0, 0);
@@ -59,8 +54,6 @@ export default function DateRange({ filter: { key } }: FilterProps) {
           Month
         </Button>
         <Button
-          variant="secondary"
-          size="sm"
           onClick={() => {
             const after = new Date();
             after.setHours(0, 0, 0);
@@ -77,8 +70,6 @@ export default function DateRange({ filter: { key } }: FilterProps) {
           Year
         </Button>
         <Button
-          variant="secondary"
-          size="sm"
           onClick={() => {
             setValue(key, [undefined, undefined]);
           }}
@@ -86,48 +77,34 @@ export default function DateRange({ filter: { key } }: FilterProps) {
           All
         </Button>
       </ButtonGroup>
-      <div className="date-range">
-        <div>
-          <label htmlFor="after">Start date</label>
+      <Grid container>
+        <Grid size={6}>
           <Controller
             control={control}
             name={key}
             render={({ field }) => (
-              <ReactDatePicker
-                isClearable
-                showTimeSelect
-                timeFormat="p"
-                timeIntervals={15}
-                dateFormat="Pp"
-                onChange={(date) => field.onChange([date, field.value?.[1]])}
-                selected={field.value?.[0]}
-                id="after"
-                placeholderText="Click to select date..."
+              <DateTimePicker
+                label="Start date"
+                onChange={(date) => field.onChange([date?.toDate(), field.value?.[1]])}
+                value={field.value?.[0] ? dayjs(field.value?.[0]) : undefined}
               />
             )}
           />
-        </div>
-        <div>
-          <label htmlFor="before">End date</label>
+        </Grid>
+        <Grid size={6}>
           <Controller
             control={control}
             name={key}
             render={({ field }) => (
-              <ReactDatePicker
-                isClearable
-                showTimeSelect
-                timeFormat="p"
-                timeIntervals={15}
-                dateFormat="Pp"
-                onChange={(date) => field.onChange([field.value?.[0], date])}
-                selected={field.value?.[1]}
-                id="before"
-                placeholderText="Click to select date..."
+              <DateTimePicker
+                label="End date"
+                onChange={(date) => field.onChange([field.value?.[0], date?.toDate()])}
+                value={field.value?.[1] ? dayjs(field.value?.[1]) : undefined}
               />
             )}
           />
-        </div>
-      </div>
+        </Grid>
+      </Grid>
     </>
   );
 }

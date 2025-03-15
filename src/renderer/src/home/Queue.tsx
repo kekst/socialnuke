@@ -1,64 +1,53 @@
-import React from 'react';
-import { observer } from 'mobx-react-lite';
-import Button from 'react-bootstrap/Button';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Table from 'react-bootstrap/Table';
-import Container from 'react-bootstrap/Container';
-import ProgressBar from 'react-bootstrap/ProgressBar';
-import { useStore } from '../../Store';
+import { observer } from "mobx-react-lite";
+import Button from "@mui/material/Button";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import LinearProgress from "@mui/material/LinearProgress";
+import { useStore } from "../Store";
 
 function Queue() {
   const store = useStore();
 
   return (
-    <Container>
-      <Row>
-        <Col xs={12}>
-          <Table striped hover>
-            <thead>
-              <tr>
-                <th>Platform</th>
-                <th>Account</th>
-                <th>Details</th>
-                <th>State</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {store.queue.map((task) => (
-                <tr key={task.id}>
-                  <td>{task.platform}</td>
-                  <td>{task.account}</td>
-                  <td>{task.description}</td>
-                  <td>
-                    {task.total && task.current && (
-                      <ProgressBar now={(task.current / task.total) * 100} />
-                    )}
-                    <div>
-                      {task.state}{' '}
-                      {task.total && task.current && (
-                        <>
-                          {task.current} / {task.total}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <Button
-                      variant="primary"
-                      onClick={() => store.cancelTask(task.id)}
-                    >
-                      Cancel
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Col>
-      </Row>
-    </Container>
+    <Table>
+      <TableHead>
+        <TableRow>
+          <TableCell>Platform</TableCell>
+          <TableCell>Account</TableCell>
+          <TableCell>Details</TableCell>
+          <TableCell>State</TableCell>
+          <TableCell>Actions</TableCell>
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        {store.queue.map((task) => (
+          <TableRow key={task.id}>
+            <TableCell>{task.platform}</TableCell>
+            <TableCell>{task.userName}</TableCell>
+            <TableCell>{task.description}</TableCell>
+            <TableCell>
+              {task.total && task.current && (
+                <LinearProgress variant="determinate" value={(task.current / task.total) * 100} />
+              )}
+              <div>
+                {task.state}{" "}
+                {task.total && task.current && (
+                  <>
+                    {task.current} / {task.total}
+                  </>
+                )}
+              </div>
+            </TableCell>
+            <TableCell>
+              <Button onClick={() => store.cancelTask(task.id)}>Cancel</Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   );
 }
 

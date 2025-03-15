@@ -1,80 +1,60 @@
-import React from 'react';
-import { observer } from 'mobx-react-lite';
-import Button from 'react-bootstrap/Button';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Table from 'react-bootstrap/Table';
-import Container from 'react-bootstrap/Container';
-import ButtonToolbar from 'react-bootstrap/ButtonToolbar';
-import { BsFillTrashFill } from 'react-icons/bs';
-import { useStore } from '../../Store';
+import { observer } from "mobx-react-lite";
+import Button from "@mui/material/Button";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import { BsCopy, BsFillTrashFill } from "react-icons/bs";
+import { useStore } from "../Store";
+import { ButtonGroup } from "@mui/material";
 
 function Accounts() {
   const store = useStore();
 
   return (
     <>
-      <Container>
-        <Row>
-          <Col xs={12}>
-            <h2>Accounts:</h2>
-          </Col>
-        </Row>
-        <Row style={{ paddingBottom: 20 }}>
-          <Col xs={12}>
-            <ButtonToolbar>
-              <Button
-                variant="primary"
-                onClick={() => store.openLogin('discord')}
-              >
-                Add Discord account
-              </Button>
-              <Button variant="primary" onClick={() => store.refreshAccounts()}>
-                Refresh accounts
-              </Button>
-            </ButtonToolbar>
-          </Col>
-        </Row>
-        <Row>
-          <Col xs={12}>
-            <Table striped hover>
-              <thead>
-                <tr>
-                  <th>Platform</th>
-                  <th>Name</th>
-                  <th>Token</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {store.accounts.map((acc) => (
-                  <tr key={acc.id}>
-                    <td>{acc.platform}</td>
-                    <td>
-                      {acc.iconUrl && (
-                        <img
-                          src={acc.iconUrl}
-                          className="target-icon"
-                          alt={acc.name}
-                        />
-                      )}
-                      {acc.name}
-                    </td>
-                    <td>
-                      <pre>{acc.token}</pre>
-                    </td>
-                    <td>
-                      <Button variant="primary">
-                        <BsFillTrashFill />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </Col>
-        </Row>
-      </Container>
+      <ButtonGroup>
+        <Button onClick={() => store.openLogin("discord")}>Add Discord account</Button>
+        <Button onClick={() => store.refreshAccounts()}>Refresh accounts</Button>
+      </ButtonGroup>
+      <Table>
+        <TableHead>
+          <TableRow>
+            <TableCell>Platform</TableCell>
+            <TableCell>Name</TableCell>
+            <TableCell>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {store.accounts.map((acc) => (
+            <TableRow key={acc.id}>
+              <TableCell>{acc.platform}</TableCell>
+              <TableCell>
+                <div className="target">
+                  {acc.iconUrl && <img src={acc.iconUrl} className="target-icon" alt={acc.name} />}
+                  <span>{acc.name}</span>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Button
+                  title="Copy token"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(acc.token);
+                    } catch {}
+                  }}
+                >
+                  <BsCopy />
+                </Button>
+                <Button title="Remove account">
+                  <BsFillTrashFill />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     </>
   );
 }

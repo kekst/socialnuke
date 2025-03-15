@@ -1,28 +1,44 @@
-import React, { useCallback, useState } from 'react';
-import { FormProvider, useForm } from 'react-hook-form';
-import { observer } from 'mobx-react-lite';
-import Button from 'react-bootstrap/Button';
-import Container from 'react-bootstrap/Container';
-import Row from 'react-bootstrap/Row';
-import Alert from 'react-bootstrap/Alert';
-import Col from 'react-bootstrap/Col';
-import Form from 'react-bootstrap/Form';
-import Spinner from 'react-bootstrap/Spinner';
-import { v4 } from 'uuid';
-import Modal from 'react-bootstrap/Modal';
-import TargetSelector from './TargetSelector';
-import { Platform, PlatformTarget } from '../platforms/types';
-import { defaultValues, waitFor } from '../platforms/utils';
-import Filter from './filter';
-import { Task, useStore } from '../../Store';
+import { useCallback, useState } from "react";
+import { FormProvider, useForm } from "react-hook-form";
+import { observer } from "mobx-react-lite";
+import Button from "@mui/material/Button";
+import Container from "@mui/material/Container";
+import Alert from "@mui/material/Alert";
+import { v4 } from "uuid";
+import Modal from "@mui/material/Modal";
+import Grid from "@mui/material/Grid2";
+import TargetSelector from "./TargetSelector";
+import { Platform, PlatformTarget } from "../platforms/types";
+import { defaultValues, waitFor } from "../platforms/utils";
+import Filter from "./filter";
+import { Task, useStore } from "../Store";
+import Box from "@mui/material/Box";
+import ButtonGroup from "@mui/material/ButtonGroup";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 
 interface PurgeProps {
   platform: Platform;
 }
 
+const style = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  bgcolor: "background.paper",
+  border: "2px solid #000",
+  boxShadow: 24,
+  p: 4
+};
+
 function Purge({ platform }: PurgeProps) {
   const form = useForm<any>({
-    defaultValues: defaultValues(platform),
+    defaultValues: defaultValues(platform)
   });
 
   const [target, setTarget] = useState<PlatformTarget>();
@@ -49,14 +65,14 @@ function Purge({ platform }: PurgeProps) {
 
     const task: Task = {
       id: v4(),
-      type: 'purge',
+      type: "purge",
       generator: target.query(form.getValues()),
       userName: target.user.name,
       iconUrl: target.user.iconUrl,
       description: `${target.type}: ${target.name}`,
       platform: platform.key,
-      state: 'queued',
-      total: numberOfMessages,
+      state: "queued",
+      total: numberOfMessages
     };
 
     store.addTask(task);
@@ -66,10 +82,13 @@ function Purge({ platform }: PurgeProps) {
   return (
     <>
       <Container style={{ padding: 0 }}>
-        <Row>
+        <Grid container spacing={4}>
           <TargetSelector platform={platform} onTargetSelected={setTarget} />
-          <Col xs={6}>
-            <Form
+          <Grid size={6}>
+            <Box
+              component="form"
+              noValidate
+              autoComplete="off"
               onSubmit={form.handleSubmit((values) => {
                 preparePurge(values);
               })}
@@ -82,45 +101,35 @@ function Purge({ platform }: PurgeProps) {
               <p>
                 Deleting only <b>own</b> messages.
               </p>
-              <Button variant="primary" disabled={!target} type="submit">
+              <Button disabled={!target} type="submit">
                 Purge
               </Button>
-            </Form>
-          </Col>
-        </Row>
+            </Box>
+          </Grid>
+        </Grid>
       </Container>
       {preparing && (
-        <div className="block">
-          <Spinner animation="border" variant="light" />
-        </div>
+        <div className="block">{/* <Spinner animation="border" variant="light" /> */}</div>
       )}
-      <Modal
-        show={numberOfMessages !== -1}
-        onHide={() => setNumberOfMessages(-1)}
-        backdrop="static"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm purge</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <p>
-            This action will remove <b>{numberOfMessages}</b> messages.
-          </p>
-          {numberOfMessages > 0 && (
-            <Alert variant="info">
-              Due to caching, the count reflected above might be inaccurate.
-            </Alert>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setNumberOfMessages(-1)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={() => confirmPurge()}>
-            Purge
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <Dialog open={numberOfMessages !== -1} onClose={() => setNumberOfMessages(-1)}>
+        <DialogTitle>Confirm purge</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            <p>
+              This action will remove <b>{numberOfMessages}</b> messages.
+            </p>
+            {numberOfMessages > 0 && (
+              <Alert severity="info">
+                Due to caching, the count reflected above might be inaccurate.
+              </Alert>
+            )}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setNumberOfMessages(-1)}>Cancel</Button>
+          <Button onClick={() => confirmPurge()}>Purge</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

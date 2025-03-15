@@ -1,16 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { observer } from 'mobx-react-lite';
-import Alert from 'react-bootstrap/Alert';
-import Container from 'react-bootstrap/Container';
-import Row from 'react-bootstrap/Row';
-import Col from 'react-bootstrap/Col';
-import Tab from 'react-bootstrap/Tab';
-import Tabs from 'react-bootstrap/Tabs';
-import { LinkContainer } from 'react-router-bootstrap';
-import { BsPlus, BsPeopleFill } from 'react-icons/bs';
-import { useStore } from '../../Store';
-import { Platform, PlatformTarget } from '../platforms/types';
-import TargetList from './TargetList';
+import { useEffect, useState } from "react";
+import { observer } from "mobx-react-lite";
+import Alert from "@mui/material/Alert";
+import Grid from "@mui/material/Grid2";
+import Tab from "@mui/material/Tab";
+import Tabs from "@mui/material/Tabs";
+import { BsPlus, BsPeopleFill } from "react-icons/bs";
+import { useStore } from "../Store";
+import { Platform, PlatformTarget } from "../platforms/types";
+import TargetList from "./TargetList";
+import Link from "@renderer/components/Link";
+import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
 
 export interface Channel {
   id: string;
@@ -21,7 +20,7 @@ export interface Channel {
 
 function TargetSelector({
   onTargetSelected,
-  platform,
+  platform
 }: {
   onTargetSelected: (target?: PlatformTarget) => void;
   platform: Platform;
@@ -38,7 +37,7 @@ function TargetSelector({
   const [children, setChildren] = useState<PlatformTarget[]>();
   const [error, setError] = useState<string | undefined>();
 
-  const changeType = (type: 'channel' | 'guild') => {
+  const changeType = (type: "channel" | "guild") => {
     setSelectedFirst(undefined);
     setSelectedSecond(undefined);
     setType(type);
@@ -50,21 +49,24 @@ function TargetSelector({
       return;
     }
 
-    const acc = store.accounts.find(
-      (acc) => acc.platform === platform.key && acc.id === selected
-    );
+    const acc = store.accounts.find((acc) => acc.platform === platform.key && acc.id === selected);
     if (acc) {
+      setLoading(true);
       platform
         .withToken(acc.token)
         .then((actor) => actor.targets(type))
         .then((res) => {
-          if (res.type === 'ok') {
+          if (res.type === "ok") {
             setTargets(res.result);
+            setLoading(false);
           }
         })
-        .catch(() => {});
+        .catch((e) => {
+          setError(`${e}`);
+          setLoading(false);
+        });
     }
-  }, [selected, type, platform, store, setTargets]);
+  }, [selected, type, platform, store, setTargets, setError, setLoading]);
 
   useEffect(() => {
     setSelectedSecond(undefined);
@@ -73,14 +75,12 @@ function TargetSelector({
       return;
     }
 
-    const acc = store.accounts.find(
-      (acc) => acc.platform === platform.key && acc.id === selected
-    );
+    const acc = store.accounts.find((acc) => acc.platform === platform.key && acc.id === selected);
     if (acc) {
       selectedFirst
         .children()
         .then((res) => {
-          if (res.type === 'ok') {
+          if (res.type === "ok") {
             setChildren(res.result);
           }
         })
@@ -92,78 +92,73 @@ function TargetSelector({
     onTargetSelected(selectedSecond || selectedFirst);
   }, [selectedFirst, selectedSecond, onTargetSelected]);
 
-  const accounts = store.accounts.filter(
-    (account) => account.platform === platform.key
-  );
+  const accounts = store.accounts.filter((account) => account.platform === platform.key);
 
   return (
-    <>
-      <Col xs={6}>
-        <div className="accounts">
+    <Grid size={6}>
+      <div className="accounts">
+        <ToggleButtonGroup
+          value={selected}
+          exclusive
+          onChange={(_, value) => {
+            setSelectedFirst(undefined);
+            setSelected(value);
+          }}
+          className="target"
+        >
           {accounts.map((acc) => (
-            <button
+            <ToggleButton
               key={acc.id}
-              onClick={() => {
-                setSelectedFirst(undefined);
-                setSelected(acc.id);
-              }}
-              className={`account ${acc.id === selected ? 'active' : ''}`}
+              className={`account ${acc.id === selected ? "active" : ""}`}
+              value={acc.id}
             >
-              {acc.iconUrl && (
-                <img src={acc.iconUrl} className="target-icon" alt={acc.name} />
-              )}
+              {acc.iconUrl && <img src={acc.iconUrl} className="target-icon" alt={acc.name} />}
               {acc.name}
-            </button>
+            </ToggleButton>
           ))}
-          {accounts.length > 0 || <p>No accounts added.</p>}
-          <button onClick={() => store.openLogin(platform.key)}>
-            <BsPlus />
-            Add
-          </button>
-          <LinkContainer to="/accounts">
-            <button>
-              <BsPeopleFill />
-              Manage
-            </button>
-          </LinkContainer>
-        </div>
-        <Tabs activeKey={type} onSelect={(k) => changeType(k as any)}>
-          {platform.targetTypes.map((type) => (
-            <Tab key={type.key} eventKey={type.key} title={type.name} />
-          ))}
-        </Tabs>
-        {loading ? <Alert variant="info">Loading...</Alert> : null}
-        {!selected ? (
-          <Alert variant="info">Select an account first.</Alert>
-        ) : null}
-        {error ? (
-          <Alert variant="danger">
-            <b>Error:</b> {error}
-          </Alert>
-        ) : null}
+        </ToggleButtonGroup>
+        {accounts.length > 0 || <p>No accounts added.</p>}
+        <Button onClick={() => store.openLogin(platform.key)} startIcon={<BsPlus />}>
+          Add
+        </Button>
+        <Link to="/accounts">
+          <Button startIcon={<BsPeopleFill />}>Manage</Button>
+        </Link>
+      </div>
+      <Tabs value={type} onChange={(_, k) => changeType(k as any)}>
+        {platform.targetTypes.map((type) => (
+          <Tab key={type.key} value={type.key} label={type.name} />
+        ))}
+      </Tabs>
+      {loading ? <Alert severity="info">Loading...</Alert> : null}
+      {!selected ? <Alert severity="info">Select an account first.</Alert> : null}
+      {error ? (
+        <Alert severity="error">
+          <b>Error:</b> {error}
+        </Alert>
+      ) : null}
 
-        <Container style={{ padding: 0 }}>
-          <Row>
-            <Col xs={selectedFirst?.children ? 6 : 12}>
+      {!loading && (
+        <Grid container style={{ padding: 0 }}>
+          <Grid size={selectedFirst?.children ? 6 : 12}>
+            <TargetList
+              targets={targets}
+              onTargetSelected={setSelectedFirst}
+              selectedTarget={selectedFirst}
+            />
+          </Grid>
+          {selectedFirst?.children && children && (
+            <Grid size={6}>
               <TargetList
-                targets={targets}
-                onTargetSelected={setSelectedFirst}
-                selectedTarget={selectedFirst}
+                targets={children}
+                onTargetSelected={setSelectedSecond}
+                selectedTarget={selectedSecond}
               />
-            </Col>
-            {selectedFirst?.children && children && (
-              <Col xs={6}>
-                <TargetList
-                  targets={children}
-                  onTargetSelected={setSelectedSecond}
-                  selectedTarget={selectedSecond}
-                />
-              </Col>
-            )}
-          </Row>
-        </Container>
-      </Col>
-    </>
+            </Grid>
+          )}
+        </Grid>
+      )}
+    </Grid>
   );
 }
 
