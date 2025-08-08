@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 export interface User {
   readonly id: string;
@@ -6,11 +6,7 @@ export interface User {
   readonly name: string;
 }
 
-export type QueryGenerator = AsyncGenerator<
-  PlatformResponse<PlatformItem>,
-  void,
-  void
->;
+export type QueryGenerator = AsyncGenerator<PlatformResponse<PlatformItem>, void, void>;
 
 export interface PlatformTarget {
   readonly id: string;
@@ -36,7 +32,7 @@ export interface FilterToggle {
 export interface Filter {
   readonly key: string;
   readonly title: string;
-  readonly type: 'dateRange' | 'select' | 'text' | 'toggles';
+  readonly type: "dateRange" | "select" | "text" | "toggles";
   readonly options?: { label: string; value: any; icon?: React.ReactNode }[];
   readonly toggles?: FilterToggle[];
   readonly defaultValue?: any;
@@ -48,25 +44,23 @@ export interface TargetType {
 }
 
 export interface ActionWait {
-  type: 'wait';
+  type: "wait";
   time: number;
 }
 
 export type Action = ActionWait;
 
 export interface PlatformResponseOk<T> {
-  type: 'ok';
+  type: "ok";
   result: T;
 }
 
 export interface PlatformResponseAction {
-  type: 'action';
+  type: "action";
   action: Action;
 }
 
-export type PlatformResponse<T> =
-  | PlatformResponseOk<T>
-  | PlatformResponseAction;
+export type PlatformResponse<T> = PlatformResponseOk<T> | PlatformResponseAction;
 
 export interface Platform {
   readonly key: string;
@@ -78,7 +72,6 @@ export interface Platform {
     dump: boolean;
   };
   readonly targetTypes: TargetType[];
-  readonly timeout: number;
 
   tokenFlow(): Promise<string>;
   withToken(token: string): Promise<PlatformActor>;

@@ -1,111 +1,128 @@
-import { useCallback, useState } from "react";
-import { FormProvider, useForm } from "react-hook-form";
+import { useMemo, useState } from "react";
 import { observer } from "mobx-react-lite";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Alert from "@mui/material/Alert";
 import { v4 } from "uuid";
-import Modal from "@mui/material/Modal";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import TargetSelector from "./TargetSelector";
 import { Platform, PlatformTarget } from "../platforms/types";
-import { defaultValues, waitFor } from "../platforms/utils";
+import { waitFor } from "../platforms/utils";
 import Filter from "./filter";
 import { Task, useStore } from "../Store";
 import Box from "@mui/material/Box";
-import ButtonGroup from "@mui/material/ButtonGroup";
 import Dialog from "@mui/material/Dialog";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
+import { PlatformContext, PlatformContextValue } from "./context";
 
 interface PurgeProps {
   platform: Platform;
 }
 
-const style = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 400,
-  bgcolor: "background.paper",
-  border: "2px solid #000",
-  boxShadow: 24,
-  p: 4
-};
-
 function Purge({ platform }: PurgeProps) {
-  const form = useForm<any>({
-    defaultValues: defaultValues(platform)
-  });
+  const store = useStore();
+  const platformState = store.platformState[platform.key];
 
   const [target, setTarget] = useState<PlatformTarget>();
-  const store = useStore();
 
   const [preparing, setPreparing] = useState(false);
   const [numberOfMessages, setNumberOfMessages] = useState(-1);
-  const preparePurge = useCallback(
-    async (values: any) => {
-      if (preparing || !target?.estimate) return;
-
-      setNumberOfMessages(-1);
-      setPreparing(true);
-
-      const estimate = await waitFor(() => target.estimate!(values));
-      setNumberOfMessages(estimate);
-      setPreparing(false);
-    },
-    [preparing, setPreparing, setNumberOfMessages, target]
-  );
-
-  const confirmPurge = () => {
+  const startPurge = (total: number) => {
     if (!target) return;
 
     const task: Task = {
       id: v4(),
       type: "purge",
-      generator: target.query(form.getValues()),
+      generator: target.query(platformState.filters),
       userName: target.user.name,
       iconUrl: target.user.iconUrl,
       description: `${target.type}: ${target.name}`,
       platform: platform.key,
       state: "queued",
-      total: numberOfMessages
+      total
     };
 
     store.addTask(task);
+  };
+
+  const preparePurge = async (values: any, skipConfirm = false) => {
+    if (preparing || !target?.estimate) return;
+
+    setNumberOfMessages(-1);
+    setPreparing(true);
+
+    const estimate = await waitFor(() => target.estimate!(values));
+    if (skipConfirm) {
+      startPurge(estimate);
+    } else {
+      setNumberOfMessages(estimate);
+    }
+    setPreparing(false);
+  };
+
+  const confirmPurge = () => {
+    startPurge(numberOfMessages);
     setNumberOfMessages(-1);
   };
+
+  const platformContextValue: PlatformContextValue = useMemo(() => {
+    return {
+      filters: platformState.filters,
+      setTarget,
+      target,
+      setFilter: (key, value) => {
+        const current = store.platformState[platform.key].filters;
+        store.platformState[platform.key].filters = { ...current, [key]: value };
+      },
+      accountId: platformState.accountId,
+      setAccountId: (id) => {
+        store.platformState[platform.key].accountId = id;
+      },
+      platform
+    };
+  }, [platformState.filters, platformState.accountId, store, platform, target]);
 
   return (
     <>
       <Container style={{ padding: 0 }}>
         <Grid container spacing={4}>
-          <TargetSelector platform={platform} onTargetSelected={setTarget} />
-          <Grid size={6}>
-            <Box
-              component="form"
-              noValidate
-              autoComplete="off"
-              onSubmit={form.handleSubmit((values) => {
-                preparePurge(values);
-              })}
-            >
-              <FormProvider {...form}>
+          <PlatformContext.Provider value={platformContextValue}>
+            <TargetSelector />
+            <Grid size={6}>
+              <Box
+                component="form"
+                noValidate
+                autoComplete="off"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  preparePurge(platformState.filters);
+                }}
+              >
                 {platform.filters.map((filter) => (
                   <Filter key={filter.key} filter={filter} />
                 ))}
-              </FormProvider>
-              <p>
-                Deleting only <b>own</b> messages.
-              </p>
-              <Button disabled={!target} type="submit">
-                Purge
-              </Button>
-            </Box>
-          </Grid>
+                <p>
+                  Deleting only <b>own</b> messages.
+                </p>
+                <Button
+                  disabled={!target}
+                  type="submit"
+                  onClick={(e) => {
+                    if (e.shiftKey) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      preparePurge(platformState.filters, true);
+                    }
+                  }}
+                >
+                  Purge
+                </Button>
+              </Box>
+            </Grid>
+          </PlatformContext.Provider>
         </Grid>
       </Container>
       {preparing && (

@@ -19,6 +19,11 @@
 .queue {
   padding: 0 !important;
 
+  .queueButtons {
+    display: flex;
+    justify-content: center;
+  }
+
   .item {
     display: block !important;
     padding: 10px;
@@ -33,13 +38,28 @@
       align-items: center;
       justify-content: space-between;
     }
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--mui-palette-TableCell-border);
+    }
   }
 
-  p {
-    margin: 0;
-    margin-bottom: 2px;
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-    &:not(:first-child) {
+  .info {
+    div {
+      margin-bottom: 2px;
+    }
+
+    .primary {
+      font-weight: bold;
+    }
+
+    .secondary {
       font-size: 0.8rem;
     }
   }
@@ -58,6 +78,14 @@
   width: 2em;
   border-radius: 5px;
   height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.name-icon {
+  height: 2em;
+  background: var(--mui-palette-grey-900);
 }
 
 .accounts {

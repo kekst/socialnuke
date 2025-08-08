@@ -1,14 +1,15 @@
-import { Controller, useFormContext } from "react-hook-form";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import dayjs from "dayjs";
 
 import { FilterProps } from "./types";
+import { usePlatform } from "../context";
 
 export default function DateRange({ filter: { key } }: FilterProps) {
-  const { control, setValue } = useFormContext();
+  const { filters, setFilter } = usePlatform();
+  const value = filters[key];
 
   return (
     <>
@@ -20,7 +21,7 @@ export default function DateRange({ filter: { key } }: FilterProps) {
             const before = new Date();
             before.setHours(23, 59, 59);
 
-            setValue(key, [after, before]);
+            setFilter(key, [after, before]);
           }}
         >
           Today
@@ -34,7 +35,7 @@ export default function DateRange({ filter: { key } }: FilterProps) {
             before.setHours(23, 59, 59);
             before.setDate(after.getDate() + 7);
 
-            setValue(key, [after, before]);
+            setFilter(key, [after, before]);
           }}
         >
           Week
@@ -48,7 +49,7 @@ export default function DateRange({ filter: { key } }: FilterProps) {
             before.setHours(23, 59, 59);
             before.setMonth(before.getMonth() + 1, 0);
 
-            setValue(key, [after, before]);
+            setFilter(key, [after, before]);
           }}
         >
           Month
@@ -64,14 +65,14 @@ export default function DateRange({ filter: { key } }: FilterProps) {
             before.setFullYear(before.getFullYear() + 1);
             before.setMonth(0, 0);
 
-            setValue(key, [after, before]);
+            setFilter(key, [after, before]);
           }}
         >
           Year
         </Button>
         <Button
           onClick={() => {
-            setValue(key, [undefined, undefined]);
+            setFilter(key, [undefined, undefined]);
           }}
         >
           All
@@ -79,29 +80,21 @@ export default function DateRange({ filter: { key } }: FilterProps) {
       </ButtonGroup>
       <Grid container>
         <Grid size={6}>
-          <Controller
-            control={control}
-            name={key}
-            render={({ field }) => (
-              <DateTimePicker
-                label="Start date"
-                onChange={(date) => field.onChange([date?.toDate(), field.value?.[1]])}
-                value={field.value?.[0] ? dayjs(field.value?.[0]) : undefined}
-              />
-            )}
+          <DateTimePicker
+            label="Start date"
+            onChange={(date) => setFilter(key, [date?.toDate(), value?.[1]])}
+            value={value?.[0] ? dayjs(value?.[0]) : undefined}
+            ampmInClock={false}
+            ampm={false}
           />
         </Grid>
         <Grid size={6}>
-          <Controller
-            control={control}
-            name={key}
-            render={({ field }) => (
-              <DateTimePicker
-                label="End date"
-                onChange={(date) => field.onChange([field.value?.[0], date?.toDate()])}
-                value={field.value?.[1] ? dayjs(field.value?.[1]) : undefined}
-              />
-            )}
+          <DateTimePicker
+            label="End date"
+            onChange={(date) => setFilter(key, [value?.[0], date?.toDate()])}
+            value={value?.[1] ? dayjs(value?.[1]) : undefined}
+            ampmInClock={false}
+            ampm={false}
           />
         </Grid>
       </Grid>

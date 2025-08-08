@@ -1,5 +1,3 @@
-import { v4 } from "uuid";
-
 import { Platform, PlatformResponse } from "./types";
 import { sleep } from "../common";
 

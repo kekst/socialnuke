@@ -107,6 +107,11 @@ function getUserName(user: DiscordUser) {
   return user.username;
 }
 
+function getName(user: DiscordUser) {
+  const username = getUserName(user);
+  return user.global_name ? `${user.global_name} (${username})` : username;
+}
+
 class DiscordItem implements PlatformItem {
   id: string;
 
@@ -131,8 +136,14 @@ class DiscordItem implements PlatformItem {
     }
 
     if (res.status !== 204) {
-      const seconds = parseInt(res.headers.get("retry-after") || "1") || 1;
-      return { type: "action", action: { type: "wait", time: seconds * 1000 } };
+      let retryAfter = parseInt(res.headers.get("retry-after") || "1") || 1;
+      try {
+        const json = await res.json();
+        if (json.retry_after) {
+          retryAfter = json.retry_after;
+        }
+      } catch {}
+      return { type: "action", action: { type: "wait", time: retryAfter * 1000 } };
     }
 
     return { type: "ok", result: true };
@@ -152,14 +163,15 @@ class DiscordTarget implements PlatformTarget {
     private discordUser: DiscordUser,
     private token: string,
     type: "dms" | "guilds" | "channel",
-    obj: DiscordDMChannel | DiscordGuild | DiscordChannel,
-    parentId?: string
+    private obj: DiscordDMChannel | DiscordGuild | DiscordChannel,
+    parentId?: string,
+    customIcon?: ReactNode
   ) {
     switch (type) {
       case "dms":
         {
           const dmChannel = obj as DiscordDMChannel;
-          const recipients = dmChannel.recipients?.map(getUserName).join(", ") || "(empty)";
+          const recipients = dmChannel.recipients?.map(getName).join(", ") || "(empty)";
           const user = dmChannel.recipients?.[0];
           this.id = dmChannel.id;
           this.name = dmChannel.recipients?.length !== 1 ? `Group DM: ${recipients}` : recipients;
@@ -189,13 +201,24 @@ class DiscordTarget implements PlatformTarget {
           this.id = guild.id;
           this.name = guild.name;
           this.type = "guilds";
-          this.iconUrl = guild.icon
-            ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
-            : undefined;
+          if (guild.icon) {
+            this.iconUrl = `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`;
+          } else {
+            this.icon = (
+              <div className="target-icon name-icon">
+                {guild.name.replace(/\w+/g, (match) => match.charAt(0)).replace(/\s/g, "")}
+              </div>
+            );
+          }
         }
         break;
       default:
         throw new Error("Not supported.");
+    }
+
+    if (customIcon) {
+      this.iconUrl = undefined;
+      this.icon = customIcon;
     }
 
     if (this.type !== "guilds") {
@@ -223,6 +246,20 @@ class DiscordTarget implements PlatformTarget {
     json.sort((a, b) => parseInt(a.position) - parseInt(b.position));
 
     const targets: PlatformTarget[] = [];
+    targets.push(
+      new DiscordTarget(
+        this.discordUser,
+        this.token,
+        "guilds",
+        {
+          ...this.obj,
+          name: "All channels"
+        },
+        undefined,
+        <BsAsterisk />
+      )
+    );
+
     const topLevel = json.filter((chan) => !chan.parent_id);
 
     for (const channel of topLevel) {
@@ -386,53 +423,86 @@ class DiscordActor implements PlatformActor {
   }
 
   async targets(type: string): Promise<PlatformResponse<PlatformTarget[]>> {
-    if (type === "dms") {
-      const res = await fetch(`${ENDPOINT}users/@me/channels`, {
-        headers: getHeaders(this.token)
-      });
-      const json: DiscordDMChannel[] = await res.json();
-      if (!Array.isArray(json)) {
-        throw new UnauthorizedError("Unauthorized");
-      }
-
-      const sorted = json.sort((a, b) => {
-        if (b.last_message_id && a.last_message_id) {
-          return parseInt(b.last_message_id) - parseInt(a.last_message_id);
+    switch (type) {
+      case "dms": {
+        const res = await fetch(`${ENDPOINT}users/@me/channels`, {
+          headers: getHeaders(this.token)
+        });
+        const json: DiscordDMChannel[] = await res.json();
+        if (!Array.isArray(json)) {
+          throw new UnauthorizedError("Unauthorized");
         }
 
-        if (a.last_message_id) {
-          return 1;
+        const sorted = json.sort((a, b) => {
+          if (b.last_message_id && a.last_message_id) {
+            return BigInt(b.last_message_id) > BigInt(a.last_message_id) ? 1 : -1;
+          }
+
+          if (b.last_message_id) {
+            return 1;
+          }
+
+          if (a.last_message_id) {
+            return -1;
+          }
+
+          return 0;
+        });
+
+        const targets: PlatformTarget[] = [];
+        for (const channel of sorted) {
+          if (!channel.recipients?.length) {
+            continue;
+          }
+
+          targets.push(new DiscordTarget(this.discordUser, this.token, "dms", channel));
         }
 
-        return 0;
-      });
-
-      const targets: PlatformTarget[] = [];
-      for (const channel of sorted) {
-        if (!channel.recipients?.length) {
-          continue;
+        return { type: "ok", result: targets };
+      }
+      case "guilds": {
+        const res = await fetch(`${ENDPOINT}users/@me/guilds`, {
+          headers: getHeaders(this.token)
+        });
+        const json: DiscordGuild[] = await res.json();
+        if (!Array.isArray(json)) {
+          throw new UnauthorizedError("Unauthorized");
         }
 
-        targets.push(new DiscordTarget(this.discordUser, this.token, "dms", channel));
-      }
+        const order: string[] = [];
+        try {
+          const res = await fetch(`${ENDPOINT}users/@me/settings`, {
+            headers: getHeaders(this.token)
+          });
+          const json: { guild_folders?: { id?: number; name?: string; guild_ids?: string[] }[] } =
+            await res.json();
+          if (json?.guild_folders) {
+            for (const folder of json.guild_folders) {
+              if (folder.guild_ids) {
+                order.push(...folder.guild_ids);
+              }
+            }
+          }
+        } catch {}
 
-      return { type: "ok", result: targets };
-    }
+        const guilds: Record<string, PlatformTarget> = Object.fromEntries(
+          json.map((guild) => [
+            guild.id,
+            new DiscordTarget(this.discordUser, this.token, "guilds", guild)
+          ])
+        );
+        const targets: PlatformTarget[] = [];
+        for (const id of order) {
+          if (guilds[id]) {
+            targets.push(guilds[id]);
+            delete guilds[id];
+          }
+        }
 
-    if (type === "guilds") {
-      const res = await fetch(`${ENDPOINT}users/@me/guilds`, {
-        headers: getHeaders(this.token)
-      });
-      const json: DiscordGuild[] = await res.json();
-      if (!Array.isArray(json)) {
-        throw new UnauthorizedError("Unauthorized");
-      }
+        targets.push(...Object.values(guilds));
 
-      const targets: PlatformTarget[] = [];
-      for (const guild of json) {
-        targets.push(new DiscordTarget(this.discordUser, this.token, "guilds", guild));
+        return { type: "ok", result: targets };
       }
-      return { type: "ok", result: targets };
     }
 
     throw new Error("Not supported.");
@@ -470,6 +540,7 @@ export default class Discord implements Platform {
       key: "has",
       type: "select",
       title: "Contains",
+      defaultValue: "undefined",
       options: [
         { label: "Anything", value: undefined, icon: <BsAsterisk /> },
         { label: "File", value: "file", icon: <BsFillFileEarmarkFill /> },
@@ -494,7 +565,6 @@ export default class Discord implements Platform {
       name: "Guild messages"
     }
   ];
-  timeout = 400;
 
   defaultFilterValues() {
     const obj: any = {};

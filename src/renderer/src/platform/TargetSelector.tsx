@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { observer } from "mobx-react-lite";
 import Alert from "@mui/material/Alert";
-import Grid from "@mui/material/Grid2";
+import Grid from "@mui/material/Grid";
 import Tab from "@mui/material/Tab";
-import Tabs from "@mui/material/Tabs";
+import TabContext from "@mui/lab/TabContext";
+import TabList from "@mui/lab/TabList";
+import TabPanel from "@mui/lab/TabPanel";
 import { BsPlus, BsPeopleFill } from "react-icons/bs";
 import { useStore } from "../Store";
-import { Platform, PlatformTarget } from "../platforms/types";
-import TargetList from "./TargetList";
 import Link from "@renderer/components/Link";
-import { Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { Box, Button, ToggleButton, ToggleButtonGroup } from "@mui/material";
+import { usePlatform } from "./context";
+import TargetSelectorType from "./TargetSelectorType";
 
 export interface Channel {
   id: string;
@@ -18,79 +20,14 @@ export interface Channel {
   accountId: string;
 }
 
-function TargetSelector({
-  onTargetSelected,
-  platform
-}: {
-  onTargetSelected: (target?: PlatformTarget) => void;
-  platform: Platform;
-}) {
+function TargetSelector() {
   const store = useStore();
+  const { platform, accountId, setAccountId } = usePlatform();
+  const account = store.accounts.find(
+    (acc) => acc.platform === platform.key && acc.id === accountId
+  );
 
-  const [selected, setSelected] = useState<string>();
-  const [selectedFirst, setSelectedFirst] = useState<PlatformTarget>();
-  const [selectedSecond, setSelectedSecond] = useState<PlatformTarget>();
-
-  const [loading, setLoading] = useState(false);
   const [type, setType] = useState<string>(platform.targetTypes[0].key);
-  const [targets, setTargets] = useState<PlatformTarget[]>([]);
-  const [children, setChildren] = useState<PlatformTarget[]>();
-  const [error, setError] = useState<string | undefined>();
-
-  const changeType = (type: "channel" | "guild") => {
-    setSelectedFirst(undefined);
-    setSelectedSecond(undefined);
-    setType(type);
-  };
-
-  useEffect(() => {
-    if (!selected || !type) {
-      setTargets([]);
-      return;
-    }
-
-    const acc = store.accounts.find((acc) => acc.platform === platform.key && acc.id === selected);
-    if (acc) {
-      setLoading(true);
-      platform
-        .withToken(acc.token)
-        .then((actor) => actor.targets(type))
-        .then((res) => {
-          if (res.type === "ok") {
-            setTargets(res.result);
-            setLoading(false);
-          }
-        })
-        .catch((e) => {
-          setError(`${e}`);
-          setLoading(false);
-        });
-    }
-  }, [selected, type, platform, store, setTargets, setError, setLoading]);
-
-  useEffect(() => {
-    setSelectedSecond(undefined);
-    setChildren([]);
-    if (!selectedFirst?.children || !selected) {
-      return;
-    }
-
-    const acc = store.accounts.find((acc) => acc.platform === platform.key && acc.id === selected);
-    if (acc) {
-      selectedFirst
-        .children()
-        .then((res) => {
-          if (res.type === "ok") {
-            setChildren(res.result);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [selectedFirst, selected, store, setChildren, platform]);
-
-  useEffect(() => {
-    onTargetSelected(selectedSecond || selectedFirst);
-  }, [selectedFirst, selectedSecond, onTargetSelected]);
 
   const accounts = store.accounts.filter((account) => account.platform === platform.key);
 
@@ -98,18 +35,17 @@ function TargetSelector({
     <Grid size={6}>
       <div className="accounts">
         <ToggleButtonGroup
-          value={selected}
+          value={accountId}
           exclusive
           onChange={(_, value) => {
-            setSelectedFirst(undefined);
-            setSelected(value);
+            setAccountId(value);
           }}
           className="target"
         >
           {accounts.map((acc) => (
             <ToggleButton
               key={acc.id}
-              className={`account ${acc.id === selected ? "active" : ""}`}
+              className={`account ${acc.id === accountId ? "active" : ""}`}
               value={acc.id}
             >
               {acc.iconUrl && <img src={acc.iconUrl} className="target-icon" alt={acc.name} />}
@@ -125,38 +61,23 @@ function TargetSelector({
           <Button startIcon={<BsPeopleFill />}>Manage</Button>
         </Link>
       </div>
-      <Tabs value={type} onChange={(_, k) => changeType(k as any)}>
-        {platform.targetTypes.map((type) => (
-          <Tab key={type.key} value={type.key} label={type.name} />
-        ))}
-      </Tabs>
-      {loading ? <Alert severity="info">Loading...</Alert> : null}
-      {!selected ? <Alert severity="info">Select an account first.</Alert> : null}
-      {error ? (
-        <Alert severity="error">
-          <b>Error:</b> {error}
-        </Alert>
-      ) : null}
-
-      {!loading && (
-        <Grid container style={{ padding: 0 }}>
-          <Grid size={selectedFirst?.children ? 6 : 12}>
-            <TargetList
-              targets={targets}
-              onTargetSelected={setSelectedFirst}
-              selectedTarget={selectedFirst}
-            />
-          </Grid>
-          {selectedFirst?.children && children && (
-            <Grid size={6}>
-              <TargetList
-                targets={children}
-                onTargetSelected={setSelectedSecond}
-                selectedTarget={selectedSecond}
-              />
-            </Grid>
-          )}
-        </Grid>
+      {account ? (
+        <TabContext value={type}>
+          <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+            <TabList onChange={(_, value) => setType(value)}>
+              {platform.targetTypes.map((type) => (
+                <Tab key={type.key} value={type.key} label={type.name} />
+              ))}
+            </TabList>
+          </Box>
+          {platform.targetTypes.map((type) => (
+            <TabPanel key={type.key} value={type.key} sx={{ padding: 0 }}>
+              <TargetSelectorType type={type.key} />
+            </TabPanel>
+          ))}
+        </TabContext>
+      ) : (
+        <Alert severity="info">Select an account first.</Alert>
       )}
     </Grid>
   );

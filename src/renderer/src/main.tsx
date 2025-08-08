@@ -1,5 +1,5 @@
 import { createRoot } from "react-dom/client";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createHashRouter, RouterProvider } from "react-router";
 import { configure } from "mobx";
 import { StoreProvider } from "./Store";
 import HomeQueue from "./home/Queue";
@@ -12,7 +12,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import "./index.scss";
 import App from "./App";
 
-const router = createMemoryRouter([
+const router = createHashRouter([
   {
     path: "/",
     Component: App,

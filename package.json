@@ -2,6 +2,8 @@
   "name": "socialnuke",
   "description": "this shit again yo",
   "main": "./out/main/index.js",
+  "version": "6.6.6",
+  "author": "Adolf Hitler",
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint . --ext .js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
@@ -37,11 +39,10 @@
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
-      "dist",
+      "out",
       "node_modules",
       "package.json"
     ],
-    "afterSign": ".erb/scripts/notarize.js",
     "mac": {
       "target": {
         "target": "default",
@@ -82,7 +83,6 @@
       "category": "Development"
     },
     "directories": {
-      "app": "release/app",
       "buildResources": "assets",
       "output": "release/build"
     },
@@ -129,12 +129,13 @@
     "@electron-toolkit/eslint-config-ts": "^2.0.0",
     "@electron-toolkit/tsconfig": "^1.0.1",
     "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^6.4.2",
-    "@mui/material": "^6.4.2",
-    "@mui/x-date-pickers": "^7.25.0",
-    "@tailwindcss/vite": "^4.0.3",
-    "@toolpad/core": "^0.12.0",
+    "@emotion/styled": "^11.14.1",
+    "@fortawesome/fontawesome-free": "^6.7.2",
+    "@mui/icons-material": "^7.2.0",
+    "@mui/lab": "^7.0.0-beta.14",
+    "@mui/material": "^7.2.0",
+    "@mui/x-date-pickers": "^8.9.2",
+    "@toolpad/core": "^0.16.0",
     "@types/node": "^22.13.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
@@ -145,26 +146,26 @@
     "electron-vite": "^2.3.0",
     "eslint": "^9.19.0",
     "eslint-plugin-react": "^7.37.4",
-    "prettier": "^3.4.2",
-    "react-icons": "^5.4.0",
-    "react-router": "^7.1.5",
-    "react-router-dom": "^7.1.5",
-    "sass-embedded": "^1.83.4",
-    "typescript": "^5.7.3",
-    "vite": "^6.0.11"
-  },
-  "dependencies": {
-    "@electron-toolkit/preload": "^3.0.1",
-    "@electron-toolkit/utils": "^3.0.0",
-    "@fortawesome/fontawesome-free": "^6.1.1",
     "history": "^5.3.0",
     "mobx": "^6.5.0",
     "mobx-react-lite": "^3.3.0",
     "popper.js": "^1.16.1",
+    "prettier": "^3.4.2",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-hook-form": "^7.44.3",
-    "uuid": "^11.0.5"
+    "react-icons": "^5.4.0",
+    "react-router": "^7.7.0",
+    "react-router-dom": "^7.7.0",
+    "sass-embedded": "^1.83.4",
+    "typescript": "^5.7.3",
+    "uuid": "^11.0.5",
+    "vite": "^6.0.11"
   },
-  "browserslist": []
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.1",
+    "@electron-toolkit/utils": "^3.0.0"
+  },
+  "browserslist": [],
+  "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }

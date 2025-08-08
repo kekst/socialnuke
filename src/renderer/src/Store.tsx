@@ -2,8 +2,8 @@ import { makeAutoObservable } from "mobx";
 import React, { createContext, useContext } from "react";
 import { sleep } from "./common";
 import { platforms } from "./platforms";
-import { PlatformItem, QueryGenerator } from "./platforms/types";
-import { waitFor } from "./platforms/utils";
+import { PlatformItem, PlatformResponse, QueryGenerator } from "./platforms/types";
+import { defaultValues } from "./platforms/utils";
 import { v4 } from "uuid";
 
 interface Account {
@@ -40,6 +40,15 @@ export class Store {
   accounts: Account[] = [];
   toasts: Toast[] = [];
   queue: Task[] = [];
+  platformState: Record<keyof typeof platforms, { filters: any; accountId?: string }> =
+    Object.fromEntries(
+      Object.entries(platforms).map(([key, platform]) => [
+        key,
+        { filters: defaultValues(platform) }
+      ])
+    );
+  paused = false;
+  turbo = true;
 
   constructor() {
     makeAutoObservable(this);
@@ -47,6 +56,12 @@ export class Store {
     this.openLogin = this.openLogin.bind(this);
     this.refreshAccounts = this.refreshAccounts.bind(this);
     this.cancelTask = this.cancelTask.bind(this);
+    this.cancelAll = this.cancelAll.bind(this);
+    this.togglePause = this.togglePause.bind(this);
+  }
+
+  togglePause() {
+    this.paused = !this.paused;
   }
 
   toast(severity: Severity, label: string) {
@@ -57,10 +72,9 @@ export class Store {
     this.toasts = this.toasts.filter((toast) => toast.id !== id);
   }
 
-  async openLogin(platformKey: string) {
+  async addByToken(platformKey: string, token: string) {
     try {
       const platform = platforms[platformKey];
-      const token = await platform.tokenFlow();
       if (!token) {
         this.toast("error", "Invalid token");
         return;
@@ -93,6 +107,16 @@ export class Store {
         ];
       }
       this.onAccountsUpdated();
+    } catch {
+      this.toast("error", "Unknown error");
+    }
+  }
+
+  async openLogin(platformKey: string) {
+    try {
+      const platform = platforms[platformKey];
+      const token = await platform.tokenFlow();
+      await this.addByToken(platformKey, token);
     } catch {
       this.toast("error", "Unknown error");
     }
@@ -134,23 +158,47 @@ export class Store {
     localStorage.setItem("accounts", JSON.stringify(this.accounts));
   }
 
-  private async runQueuePlatform(callback: (item: PlatformItem) => Promise<void>) {
+  private async runQueuePlatform(
+    callback: (item: PlatformItem) => Promise<PlatformResponse<boolean>>
+  ) {
     if (!this.queue[0]) return;
     const first = this.queue[0];
     if (first.state !== "preparing") return;
     const { generator } = first;
-    const platform = platforms[first.platform];
 
     this.queue[0].current = 0;
     this.queue[0].state = "progress";
 
+    const defaultDelay = 100;
+    let throttledDelay = defaultDelay;
+    let throttledMessages = 0;
+
     for await (const item of generator) {
+      while (this.paused) {
+        await sleep(100);
+      }
+
       const first = this.queue[0];
       if (first.state === "cancelled") return;
 
       if (item.type === "ok") {
         try {
-          await callback(item.result);
+          while (true) {
+            const res = await callback(item.result);
+            if (res.type === "action" && res.action.type === "wait") {
+              await sleep(res.action.time);
+
+              if (res.action.time > throttledDelay) {
+                throttledDelay = defaultDelay + res.action.time;
+                console.log("updated delay to", throttledDelay);
+              }
+              throttledMessages = 50;
+            }
+
+            if (res.type === "ok") {
+              break;
+            }
+          }
         } catch {
           //
         }
@@ -161,18 +209,22 @@ export class Store {
         }
       }
 
+      if (throttledMessages === 0) {
+        throttledDelay = defaultDelay;
+      } else {
+        throttledMessages--;
+      }
+
       //todo update remaining
       this.queue[0].current += 1;
-      await sleep(platform.timeout);
+      await sleep(throttledDelay + (!this.turbo ? 1000 : 0));
     }
 
     this.queue.shift();
   }
 
   private async runQueuePurge() {
-    await this.runQueuePlatform(async (item) => {
-      await waitFor(() => item.delete());
-    });
+    await this.runQueuePlatform(async (item) => item.delete());
   }
 
   async runQueue() {
@@ -216,6 +268,13 @@ export class Store {
 
         task.state = "cancelled";
       }
+    }
+  }
+
+  cancelAll() {
+    this.queue = this.queue.filter((task) => task.state !== "queued");
+    for (const task of this.queue) {
+      task.state = "cancelled";
     }
   }
 }

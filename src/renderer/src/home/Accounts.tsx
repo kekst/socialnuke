@@ -7,10 +7,12 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import { BsCopy, BsFillTrashFill } from "react-icons/bs";
 import { useStore } from "../Store";
-import { ButtonGroup } from "@mui/material";
+import { Box, ButtonGroup, TextField } from "@mui/material";
+import { useState } from "react";
 
 function Accounts() {
   const store = useStore();
+  const [token, setToken] = useState("");
 
   return (
     <>
@@ -18,6 +20,25 @@ function Accounts() {
         <Button onClick={() => store.openLogin("discord")}>Add Discord account</Button>
         <Button onClick={() => store.refreshAccounts()}>Refresh accounts</Button>
       </ButtonGroup>
+
+      <Box padding={5}>
+        <TextField
+          type="text"
+          variant="standard"
+          fullWidth
+          value={token}
+          onChange={(e) => setToken(e.target.value)}
+        />
+        <Button
+          onClick={() => {
+            store.addByToken("discord", token);
+            setToken("");
+          }}
+        >
+          Add Discord account by token
+        </Button>
+      </Box>
+
       <Table>
         <TableHead>
           <TableRow>
